@@ -38,7 +38,7 @@ void ARacket::BeginPlay()
 	
 
 	Super::BeginPlay();
-	FIPv4Endpoint Endpoint(FIPv4Address(192, 168, 1, 40), 5557);
+	FIPv4Endpoint Endpoint(FIPv4Address(0, 0, 0, 0), 5557);
 
 	ListenSocket = FUdpSocketBuilder(TEXT("SomeDescription"))
 		.AsNonBlocking()
@@ -115,13 +115,13 @@ void ARacket::Tick(float DeltaTime)
 			float w = FCString::Atof(*OutArray[4]);
 			FQuat quat = FQuat(-x, y, -z, w).GetNormalized();
 
-			FQuat newQuat = FQuat(quat.Rotator().Add(0, -90, 0));
+			FQuat newQuat = FQuat(quat.Rotator().Add(0, 0, -180));
 
 			this->SetActorRotation(newQuat.GetNormalized());
 		}
 		else if (dataType.StartsWith("1"))
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Message by UDP: " + debugData);
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Message by UDP: " + debugData);
 			FVector loc = this->GetActorLocation();
 			this->vx -= FCString::Atof(*OutArray[1]) * DeltaTime;
 			this->vy += FCString::Atof(*OutArray[2]) * DeltaTime;
@@ -130,12 +130,23 @@ void ARacket::Tick(float DeltaTime)
 			//this->SetActorLocation(FVector(loc.X + vx * DeltaTime, loc.Y + vy * DeltaTime, loc.Z + vz * DeltaTime));
 		}
 		else {
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + debugData);
-			float x = FCString::Atof(*OutArray[1]) / 100.0f;
-			float y = FCString::Atof(*OutArray[2]) / 100.0f;
-			float z = FCString::Atof(*OutArray[3]) / 100.0f;
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f %.3f"), x, y, z));
-			this->SetActorLocation(FVector(this->initialLocation.X + x - 40, this->initialLocation.Y + y, this->initialLocation.Z + z));
+			debugData.ParseIntoArray(OutArray, TEXT("]"));
+			FString posStr = *OutArray[0];
+			posStr.ParseIntoArray(OutArray, TEXT(", "));
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + debugData);
+			OutArray[0].RemoveFromStart("[");
+			volatile float x = FCString::Atof(*OutArray[0]) * 3.0f;
+			volatile float y = FCString::Atof(*OutArray[1]) * 3.0f;
+			if (OutArray.Num() == 3)
+			{
+				float z = FCString::Atof(*OutArray[2]) / 100.0f;
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f %.3f"), x, y, z));
+				this->SetActorLocation(FVector(this->initialLocation.X + x, this->initialLocation.Y + y, this->initialLocation.Z + z));
+			}
+			else {
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f"), x, y));
+				this->SetActorLocation(FVector(this->initialLocation.X + y - 52, this->initialLocation.Y + x - 45, this->initialLocation.Z));
+			}
 		}
 	} 
 }
