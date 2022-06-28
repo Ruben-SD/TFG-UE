@@ -31,20 +31,14 @@ void ARacket::BeginPlay()
 	cmdEx.FileExecutionScope = fileExecScope;
 	cmdEx.LogOutput = logOutput;
 	
-	//IPythonScriptPlugin::ExecPythonCommandEx("main.py", cmdResult, logOutput, cmdExecMode, fileExecScope);
 	IPythonScriptPlugin* pythonScriptPlugin = IPythonScriptPlugin::Get();
-	//bool status = pythonScriptPlugin->ExecPythonCommandEx(cmdEx);
 
 	bool status = FPlatformProcess::CreatePipe(this->readPipe, this->writePipe);
-	this->proc = FPlatformProcess::CreateProc(TEXT("python"), TEXT("C:\\Users\\RubenSD\\Documents\\UnrealEngine\\Python\\main.py"), true, false, false, nullptr, 0, nullptr, writePipe, readPipe);
+	//this->proc = FPlatformProcess::CreateProc(TEXT("python"), TEXT("C:\\Users\\RubenSD\\Documents\\UnrealEngine\\Python\\main.py"), true, false, false, nullptr, 0, nullptr, writePipe, readPipe);
 	
-	//Windows::HANDLE procHandle = proc.Get();
-	
-	//while (true) {
-		//FPythonLogOutputEntry currEntry = logOutput.Pop();
-	//}
+
 	Super::BeginPlay();
-	FIPv4Endpoint Endpoint(FIPv4Address(192, 168, 1, 38), 5557);
+	FIPv4Endpoint Endpoint(FIPv4Address(192, 168, 1, 40), 5557);
 
 	ListenSocket = FUdpSocketBuilder(TEXT("SomeDescription"))
 		.AsNonBlocking()
@@ -68,22 +62,22 @@ void ARacket::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FString output = FPlatformProcess::ReadPipe(this->readPipe);
-	if (output != "") {
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + output);
-		FJsonSerializableArray lines, coordsList, coords;
-		output.ParseIntoArrayLines(lines);
-		FString(*lines[lines.Num() - 1]).ParseIntoArray(coordsList, TEXT("["));
-		FString coordsListStr(*coordsList[coordsList.Num() - 1]);
-		coordsListStr.RemoveAt(coordsListStr.Len() - 1);
-		coordsListStr.ParseIntoArray(coords, TEXT(", "));
-		float x = FCString::Atof(*coords[0])/100.0f;
-		float y = FCString::Atof(*coords[1])/100.0f;
-		float z = FCString::Atof(*coords[2])/100.0f;
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f %.3f"), x, y, z));
-		this->SetActorLocation(FVector(this->initialLocation.X + x - 40, this->initialLocation.Y + y, this->initialLocation.Z + z));
-	}
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + line);
+	//FString output = FPlatformProcess::ReadPipe(this->readPipe);
+	//if (output != "") {
+	//	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + output);
+	//	FJsonSerializableArray lines, coordsList, coords;
+	//	output.ParseIntoArrayLines(lines);
+	//	FString(*lines[lines.Num() - 1]).ParseIntoArray(coordsList, TEXT("["));
+	//	FString coordsListStr(*coordsList[coordsList.Num() - 1]);
+	//	coordsListStr.RemoveAt(coordsListStr.Len() - 1);
+	//	coordsListStr.ParseIntoArray(coords, TEXT(", "));
+	//	float x = FCString::Atof(*coords[0])/100.0f;
+	//	float y = FCString::Atof(*coords[1])/100.0f;
+	//	float z = FCString::Atof(*coords[2])/100.0f;
+	//	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f %.3f"), x, y, z));
+	//	this->SetActorLocation(FVector(this->initialLocation.X + x - 40, this->initialLocation.Y + y, this->initialLocation.Z + z));
+	//}
+	////GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + line);
 
 	TSharedRef<FInternetAddr> targetAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
 	TArray<uint8> ReceivedData;
@@ -125,7 +119,7 @@ void ARacket::Tick(float DeltaTime)
 
 			this->SetActorRotation(newQuat.GetNormalized());
 		}
-		else
+		else if (dataType.StartsWith("1"))
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Message by UDP: " + debugData);
 			FVector loc = this->GetActorLocation();
@@ -133,7 +127,15 @@ void ARacket::Tick(float DeltaTime)
 			this->vy += FCString::Atof(*OutArray[2]) * DeltaTime;
 			this->vz -= FCString::Atof(*OutArray[3]) * DeltaTime;
 						
-			this->SetActorLocation(FVector(loc.X + vx * DeltaTime, loc.Y + vy * DeltaTime, loc.Z + vz * DeltaTime));
+			//this->SetActorLocation(FVector(loc.X + vx * DeltaTime, loc.Y + vy * DeltaTime, loc.Z + vz * DeltaTime));
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, "Main.py output log: " + debugData);
+			float x = FCString::Atof(*OutArray[1]) / 100.0f;
+			float y = FCString::Atof(*OutArray[2]) / 100.0f;
+			float z = FCString::Atof(*OutArray[3]) / 100.0f;
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("%.3f %.3f %.3f"), x, y, z));
+			this->SetActorLocation(FVector(this->initialLocation.X + x - 40, this->initialLocation.Y + y, this->initialLocation.Z + z));
 		}
 	} 
 }
